@@ -1,0 +1,11 @@
+export type Env = {
+  store_nvim_readmes: R2Bucket;
+  GITHUB_TOKEN?: string;
+  ADMIN_TOKEN: string;
+};
+
+export type R2ReadmeMetadata = {
+  cachedAt: string;
+  etag?: string;
+  source: string;
+};

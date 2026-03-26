@@ -1,0 +1,13 @@
+name = "store-nvim-readme"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+
+[[r2_buckets]]
+bucket_name = "store-nvim-readmes"
+binding = "store_nvim_readmes"
+
+[observability]
+enabled = true
+
+[vars]
+ADMIN_TOKEN = "dev-token"
