@@ -1,4 +1,4 @@
-# store.nvim.readme-cache
+# store.nvim.readme
 
 README CDN and processing service for [store.nvim](https://github.com/alex-popov-tech/store.nvim). Fetches raw READMEs from GitHub/GitLab, processes them (strips HTML, removes badges, filters unsupported images), caches in R2, and serves pre-cleaned markdown. Built on Cloudflare Workers + R2 (free tier compatible).
 
@@ -41,23 +41,23 @@ npm run deploy
 
 ## API
 
-### `GET /readme/:source/:owner/:repo/:branch/*path`
+### `GET /readme/:source/:owner/:repo/:branch/:path`
 
 Fetch a processed README.
 
 ```bash
-curl https://store-nvim-readme.alex-popov-tech.workers.dev/readme/github/folke/lazy.nvim/main/README.md
+curl https://store-nvim-readme.oleksandrp.com/readme/github/folke/lazy.nvim/main/README.md
 
-curl https://store-nvim-readme.alex-popov-tech.workers.dev/readme/github/catppuccin/nvim/main/README.md
+curl https://store-nvim-readme.oleksandrp.com/readme/github/catppuccin/nvim/main/README.md
 
-curl https://store-nvim-readme.alex-popov-tech.workers.dev/readme/gitlab/someone/plugin/main/README.md
+curl https://store-nvim-readme.oleksandrp.com/readme/gitlab/someone/plugin/main/README.md
 ```
 
 **Parameters:**
 - `source` — `github` or `gitlab`
 - `owner` / `repo` — repository owner and name
 - `branch` — branch name (e.g. `main`, `master`, `HEAD`)
-- `*path` — file path (e.g. `README.md`, `doc/README.md`)
+- `path` — file name (e.g. `README.md`)
 
 **Response headers:**
 - `Content-Type: text/plain; charset=utf-8`
@@ -80,7 +80,7 @@ curl https://store-nvim-readme.alex-popov-tech.workers.dev/readme/gitlab/someone
 Purge all cached READMEs. Protected by bearer token.
 
 ```bash
-curl -X DELETE https://store-nvim-readme.alex-popov-tech.workers.dev/cache \
+curl -X DELETE https://store-nvim-readme.oleksandrp.com/cache \
   -H "Authorization: Bearer <ADMIN_TOKEN>"
 ```
 
