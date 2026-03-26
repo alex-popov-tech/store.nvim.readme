@@ -1,0 +1,20 @@
+name: Preheat README cache
+
+on:
+  schedule:
+    # 2 hours after crawler runs (crawler is at 02:00 UTC)
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+jobs:
+  preheat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: node scripts/preheat.mjs
