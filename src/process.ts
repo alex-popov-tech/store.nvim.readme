@@ -42,6 +42,10 @@ function isUnsupportedImageUrl(url: string): boolean {
   return UNSUPPORTED_IMAGE_PATTERN.test(url);
 }
 
+function isRelativeImageUrl(url: string): boolean {
+  return !/^(?:https?:\/\/|data:)/i.test(url);
+}
+
 /**
  * Extract src attribute from an <img> HTML tag.
  * Handles double-quoted, single-quoted, and unquoted src values.
@@ -103,6 +107,37 @@ const remarkConvertImgTags: Plugin<[], Root> = () => (tree) => {
     }
 
     return [SKIP, index] as const;
+  });
+};
+
+/**
+ * Remove images with relative URLs (./foo.png, ../bar.png, assets/img.png).
+ * These reference repo-local files we don't have — they'd be broken.
+ */
+const remarkRemoveRelativeImages: Plugin<[], Root> = () => (tree) => {
+  // Remove links wrapping relative images
+  visit(tree, "link", (node: Link, index, parent) => {
+    if (!parent || index === undefined) return;
+
+    const hasOnlyRelativeImage =
+      node.children.length === 1 &&
+      node.children[0].type === "image" &&
+      isRelativeImageUrl(node.children[0].url);
+
+    if (hasOnlyRelativeImage) {
+      parent.children.splice(index, 1);
+      return [SKIP, index] as const;
+    }
+  });
+
+  // Remove standalone relative images
+  visit(tree, "image", (node: Image, index, parent) => {
+    if (!parent || index === undefined) return;
+
+    if (isRelativeImageUrl(node.url)) {
+      parent.children.splice(index, 1);
+      return [SKIP, index] as const;
+    }
   });
 };
 
@@ -266,6 +301,7 @@ const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
   .use(remarkConvertImgTags)
+  .use(remarkRemoveRelativeImages)
   .use(remarkRemoveBadges)
   .use(remarkRemoveUnsupportedImages)
   .use(remarkConvertHtml)
@@ -290,8 +326,10 @@ export {
   UNSUPPORTED_IMAGE_PATTERN,
   isBadgeUrl,
   isUnsupportedImageUrl,
+  isRelativeImageUrl,
   extractImgSrc,
   remarkConvertImgTags,
+  remarkRemoveRelativeImages,
   remarkRemoveBadges,
   remarkRemoveUnsupportedImages,
   remarkConvertHtml,

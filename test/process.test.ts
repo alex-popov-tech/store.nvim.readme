@@ -3,6 +3,7 @@ import {
   processReadme,
   isBadgeUrl,
   isUnsupportedImageUrl,
+  isRelativeImageUrl,
   extractImgSrc,
   postProcess,
 } from "../src/process.js";
@@ -105,6 +106,32 @@ describe("isUnsupportedImageUrl", () => {
   });
 });
 
+describe("isRelativeImageUrl", () => {
+  it("matches ./relative path", () => {
+    expect(isRelativeImageUrl("./images/logo.png")).toBe(true);
+  });
+
+  it("matches ../parent path", () => {
+    expect(isRelativeImageUrl("../assets/demo.png")).toBe(true);
+  });
+
+  it("matches bare relative path", () => {
+    expect(isRelativeImageUrl("images/screenshot.png")).toBe(true);
+  });
+
+  it("does not match https URL", () => {
+    expect(isRelativeImageUrl("https://example.com/img.png")).toBe(false);
+  });
+
+  it("does not match http URL", () => {
+    expect(isRelativeImageUrl("http://example.com/img.png")).toBe(false);
+  });
+
+  it("does not match data URI", () => {
+    expect(isRelativeImageUrl("data:image/png;base64,abc")).toBe(false);
+  });
+});
+
 describe("postProcess", () => {
   it("decodes HTML entities", () => {
     expect(postProcess("Tom &amp; Jerry\n")).toBe("Tom & Jerry\n");
@@ -150,6 +177,41 @@ describe("processReadme", () => {
       expect(result).not.toContain("<img");
       expect(result).toContain("before");
       expect(result).toContain("after");
+    });
+  });
+
+  describe("relative image removal", () => {
+    it("removes markdown image with ./ path", async () => {
+      const input = "# Title\n\n![logo](./images/logo.png)\n\nContent";
+      const result = await processReadme(input);
+      expect(result).not.toContain("logo.png");
+      expect(result).toContain("# Title");
+      expect(result).toContain("Content");
+    });
+
+    it("removes HTML img with relative src", async () => {
+      const input = '<img src="./images/logo.png">';
+      const result = await processReadme(input);
+      expect(result).not.toContain("logo.png");
+    });
+
+    it("removes linked relative image", async () => {
+      const input =
+        "[![logo](./logo.png)](https://example.com)";
+      const result = await processReadme(input);
+      expect(result).not.toContain("logo.png");
+    });
+
+    it("removes bare relative path image", async () => {
+      const input = "![screenshot](assets/screenshot.png)";
+      const result = await processReadme(input);
+      expect(result).not.toContain("screenshot.png");
+    });
+
+    it("preserves absolute URL images", async () => {
+      const input = "![photo](https://example.com/photo.png)";
+      const result = await processReadme(input);
+      expect(result).toContain("![photo](https://example.com/photo.png)");
     });
   });
 
