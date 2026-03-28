@@ -13,6 +13,12 @@ const BASE_URL =
 const DB_URL =
   "https://github.com/alex-popov-tech/store.nvim.crawler/releases/latest/download/db_minified.json";
 const CONCURRENCY = parseInt(process.env.CONCURRENCY || "10", 10);
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
+
+if (!ADMIN_TOKEN) {
+  console.error("ADMIN_TOKEN environment variable is required");
+  process.exit(1);
+}
 
 async function fetchDb() {
   console.log(`Fetching db.json from crawler release...`);
@@ -49,7 +55,11 @@ async function preheatRepo(item) {
 
   try {
     const resp = await fetch(url, {
-      headers: { "User-Agent": "store.nvim-preheat" },
+      method: "PUT",
+      headers: {
+        "User-Agent": "store.nvim-preheat",
+        Authorization: `Bearer ${ADMIN_TOKEN}`,
+      },
       signal: AbortSignal.timeout(30000),
     });
     if (!resp.ok) {
@@ -70,7 +80,7 @@ async function main() {
     `Found ${items.length} repos. Preheating with concurrency=${CONCURRENCY}...\n`,
   );
 
-  const stats = { HIT: 0, MISS: 0, STALE: 0, error: 0, skip: 0, unknown: 0 };
+  const stats = { REFRESH: 0, error: 0, skip: 0, unknown: 0 };
   let done = 0;
   const startTime = Date.now();
 
@@ -86,7 +96,7 @@ async function main() {
     if (done % 200 === 0 || done === items.length) {
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
       console.log(
-        `  ${done}/${items.length} (${elapsed}s) — MISS:${stats.MISS} HIT:${stats.HIT} STALE:${stats.STALE} err:${stats.error} skip:${stats.skip}`,
+        `  ${done}/${items.length} (${elapsed}s) — REFRESH:${stats.REFRESH} err:${stats.error} skip:${stats.skip}`,
       );
     }
   }

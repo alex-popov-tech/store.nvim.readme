@@ -18,3 +18,5 @@ jobs:
           node-version: 22
 
       - run: node scripts/preheat.mjs
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}

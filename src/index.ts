@@ -169,6 +169,56 @@ app.get("/readme/:source/:owner/:repo/:branch/:path", async (c) => {
   }
 });
 
+// PUT /readme/:source/:owner/:repo/:branch/:path — force refresh (protected)
+app.put("/readme/:source/:owner/:repo/:branch/:path", async (c) => {
+  const auth = c.req.header("Authorization");
+  if (!auth || auth !== `Bearer ${c.env.ADMIN_TOKEN}`) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  const { source, owner, repo, branch, path } = c.req.param();
+
+  if (source !== "github" && source !== "gitlab") {
+    return c.text("Invalid source. Use 'github' or 'gitlab'.", 400);
+  }
+
+  const fullName = `${owner}/${repo}`;
+  const key = r2Key(source, owner, repo);
+
+  try {
+    const result = await fetchAndProcess(
+      source,
+      fullName,
+      branch,
+      path,
+      c.env,
+    );
+
+    if (!result) {
+      return c.text("Unexpected 304 on force refresh", 502);
+    }
+
+    await c.env.store_nvim_readmes.put(key, result.processed, {
+      customMetadata: {
+        cachedAt: new Date().toISOString(),
+        etag: result.etag ?? "",
+        source,
+      },
+    });
+
+    return readmeResponse(result.processed, "REFRESH");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`Force refresh failed for ${fullName}:`, err);
+
+    if (message.includes("404")) {
+      return c.text(`README not found: ${fullName}`, 404);
+    }
+
+    return c.text(`Upstream error: ${message}`, 502);
+  }
+});
+
 // DELETE /cache — purge all cached READMEs (protected)
 app.delete("/cache", async (c) => {
   const auth = c.req.header("Authorization");
