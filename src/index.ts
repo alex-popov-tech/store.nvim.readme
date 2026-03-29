@@ -12,8 +12,8 @@ function r2Key(source: string, owner: string, repo: string): string {
 }
 
 function isFresh(metadata: R2ReadmeMetadata): boolean {
-  const cachedAt = new Date(metadata.cachedAt).getTime();
-  return Date.now() - cachedAt < CACHE_TTL_MS;
+  const processedAt = new Date(metadata.processedAt || metadata.cachedAt).getTime();
+  return Date.now() - processedAt < CACHE_TTL_MS;
 }
 
 function contentHash(body: string): string {
@@ -106,19 +106,22 @@ app.get("/readme/:source/:owner/:repo/:branch/:path", async (c) => {
               c.env,
               metadata.etag,
             );
+            const now = new Date().toISOString();
             if (fresh) {
               await c.env.store_nvim_readmes.put(key, fresh.processed, {
                 customMetadata: {
-                  cachedAt: new Date().toISOString(),
+                  cachedAt: now,
+                  processedAt: now,
                   etag: fresh.etag ?? "",
                   source,
                 },
               });
             } else {
-              // 304 — content unchanged, just bump the timestamp
+              // 304 — content unchanged, bump cachedAt but keep original processedAt
               await c.env.store_nvim_readmes.put(key, body, {
                 customMetadata: {
-                  cachedAt: new Date().toISOString(),
+                  cachedAt: now,
+                  processedAt: metadata.processedAt || metadata.cachedAt,
                   etag: metadata.etag ?? "",
                   source,
                 },
@@ -148,9 +151,11 @@ app.get("/readme/:source/:owner/:repo/:branch/:path", async (c) => {
       return c.text("Unexpected 304 on cache miss", 502);
     }
 
+    const now = new Date().toISOString();
     await c.env.store_nvim_readmes.put(key, result.processed, {
       customMetadata: {
-        cachedAt: new Date().toISOString(),
+        cachedAt: now,
+        processedAt: now,
         etag: result.etag ?? "",
         source,
       },
@@ -198,9 +203,11 @@ app.put("/readme/:source/:owner/:repo/:branch/:path", async (c) => {
       return c.text("Unexpected 304 on force refresh", 502);
     }
 
+    const now = new Date().toISOString();
     await c.env.store_nvim_readmes.put(key, result.processed, {
       customMetadata: {
-        cachedAt: new Date().toISOString(),
+        cachedAt: now,
+        processedAt: now,
         etag: result.etag ?? "",
         source,
       },
