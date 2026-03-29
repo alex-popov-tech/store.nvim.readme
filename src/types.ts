@@ -6,6 +6,7 @@ export type Env = {
 
 export type R2ReadmeMetadata = {
   cachedAt: string;
+  processedAt: string;
   etag?: string;
   source: string;
 };
