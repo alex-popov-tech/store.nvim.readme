@@ -3,6 +3,30 @@ export type FetchResult = {
   etag?: string;
 };
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
+
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      return await fetch(url, {
+        ...init,
+        signal: AbortSignal.timeout(10000),
+      });
+    } catch (err) {
+      lastError = err;
+      if (attempt < MAX_RETRIES - 1) {
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)));
+      }
+    }
+  }
+  throw lastError;
+}
+
 export async function fetchGithubReadme(
   fullName: string,
   branch: string,
@@ -21,10 +45,7 @@ export async function fetchGithubReadme(
     headers["Authorization"] = `token ${options.githubToken}`;
   }
 
-  const resp = await fetch(url, {
-    headers,
-    signal: AbortSignal.timeout(10000),
-  });
+  const resp = await fetchWithRetry(url, { headers });
 
   if (resp.status === 304) return null;
 
@@ -53,10 +74,7 @@ export async function fetchGitlabReadme(
     headers["If-None-Match"] = options.etag;
   }
 
-  const resp = await fetch(url, {
-    headers,
-    signal: AbortSignal.timeout(10000),
-  });
+  const resp = await fetchWithRetry(url, { headers });
 
   if (resp.status === 304) return null;
 
