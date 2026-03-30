@@ -9,5 +9,7 @@ binding = "store_nvim_readmes"
 [observability]
 enabled = true
 
-[vars]
-ADMIN_TOKEN = "dev-token"
+[[routes]]
+pattern = "store-nvim-readme.oleksandrp.com"
+zone_name = "oleksandrp.com"
+custom_domain = true

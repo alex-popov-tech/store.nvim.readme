@@ -17,6 +17,11 @@ jobs:
         with:
           node-version: 22
 
-      - run: node scripts/preheat.mjs
+      - run: npm ci
+
+      - run: npx tsx scripts/preheat.ts
         env:
-          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          CONCURRENCY: ${{ env.CONCURRENCY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
